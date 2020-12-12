@@ -1,91 +1,116 @@
 module Main exposing (main)
 
 import Browser exposing (Document)
+import Browser.Dom as Dom
 import Browser.Navigation as Nav
 import Debug
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Pages exposing (PageModel, PageMsg, initPage, pageTitle, updatePage, viewPage)
-import Pages.About
-import Pages.Home
-import Pages.NotFound
-import Tuple
-import Url
+import Html.Events exposing (onClick)
+import Json.Decode exposing (bool)
+import Task
+import Time
+import Utilities exposing (..)
 
 
 main : Program () Model Msg
 main =
-    Browser.application
+    Browser.document
         { init = init
         , view = view
         , update = update
         , subscriptions = subscriptions
-        , onUrlChange = UrlChanged
-        , onUrlRequest = LinkClicked
         }
 
 
 type alias Model =
-    { key : Nav.Key
-    , url : Url.Url
-    , pageModel : PageModel
+    { scrollToTopRequested : Bool, scrollButtonDisappeared : Bool }
+
+
+init : () -> ( Model, Cmd Msg )
+init flags =
+    ( Model False True, Cmd.none )
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    if model.scrollToTopRequested && not model.scrollButtonDisappeared then
+        Time.every 500 (always ScrollButtonDisappeared)
+
+    else
+        Sub.none
+
+
+view : Model -> Document Msg
+view model =
+    { title = ""
+    , body =
+        [ container [ id "main", class "p-5 h-100" ]
+            [ img
+                [ class "rounded-circle d-block mx-auto mt-4"
+                , id "me"
+                , width 500
+                , height 500
+                , src "/images/professional-photo-jared.png"
+                ]
+                []
+            , div [ class "text-center" ]
+                [ display 2 [] [ text "Jared Weinberger" ]
+                , lead [] [ text "For the joy of programming" ]
+                ]
+            , div [ class "d-flex justify-content-center" ]
+                [ div [ class "border-top border-bottom" ]
+                    [ btn [ onClick AboutMeClicked ] [ text "About Me" ]
+                    , btn [ onClick CvClicked ] [ text "Curriculum Vitae" ]
+                    ]
+                ]
+            ]
+        , div
+            [ class "w-100 p-1 justify-content-end fixed-bottom d-flex"
+            , classList [ ( "d-none", model.scrollButtonDisappeared ) ]
+            ]
+            [ btn
+                [ onClick ScrollToTopRequested ]
+                [ icon "angle-up" [] [], text " Scroll to top" ]
+            ]
+        , container [ id "about-me", class "p-5 h-100" ]
+            []
+        , container [ id "cv", class "p-5 h-100" ]
+            []
+        ]
     }
 
 
-init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
-init flags url key =
-    Tuple.mapBoth
-        (\pageModel -> Model key url pageModel)
-        (\pageCmd -> Cmd.map PageEvent pageCmd)
-        (initPage url)
-
-
 type Msg
-    = LinkClicked Browser.UrlRequest
-    | UrlChanged Url.Url
-    | PageEvent PageMsg
+    = AboutMeClicked
+    | CvClicked
+    | ScrollToTopRequested
+    | ScrollButtonDisappeared
+    | None
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        LinkClicked urlRequest ->
-            case urlRequest of
-                Browser.Internal url ->
-                    ( model, Nav.pushUrl model.key (Url.toString url) )
+        AboutMeClicked ->
+            ( { model | scrollButtonDisappeared = False }, scrollTo "about-me" )
 
-                Browser.External href ->
-                    ( model, Nav.load href )
+        CvClicked ->
+            ( { model | scrollButtonDisappeared = False }, scrollTo "cv" )
 
-        UrlChanged url ->
-            Tuple.mapBoth
-                (\pageModel -> { model | url = url, pageModel = pageModel })
-                (\pageCmd -> Cmd.map PageEvent pageCmd)
-                (initPage url)
+        ScrollToTopRequested ->
+            ( { model | scrollToTopRequested = True, scrollButtonDisappeared = False }, scrollTo "main" )
 
-        PageEvent pageMsg ->
-            Tuple.mapBoth
-                (\pageModel -> { model | pageModel = pageModel })
-                (\pageCmd -> Cmd.map PageEvent pageCmd)
-                (updatePage pageMsg model.pageModel)
+        ScrollButtonDisappeared ->
+            ( { model | scrollToTopRequested = False, scrollButtonDisappeared = True }, scrollTo "main" )
+
+        None ->
+            ( model, Cmd.none )
 
 
-subscriptions : Model -> Sub Msg
-subscriptions _ =
-    Sub.none
-
-
-view : Model -> Document Msg
-view model =
-    Document
-        (pageTitle model.pageModel)
-        [ -- [ Cdn.stylesheet
-          -- , Cdn.fontAwesome
-          -- ,
-          Html.map PageEvent (viewPage model.pageModel)
-        ]
-
-
-viewLink : String -> Html msg
-viewLink path =
-    li [] [ a [ href path ] [ text path ] ]
+scrollTo : String -> Cmd Msg
+scrollTo elementId =
+    Dom.getElement elementId
+        |> Task.map (\elemInfo -> Debug.log "" elemInfo)
+        |> Task.andThen (\vp -> Dom.setViewport 0 vp.element.y)
+        |> Task.attempt (always None)
