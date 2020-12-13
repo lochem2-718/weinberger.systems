@@ -1,3 +1,43 @@
 html, body {
     height: 100%;
+    font-family: 'Open Sans';
+}
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Segoe UI';
+}
+
+.headshot {
+    width: auto;
+    max-height: 60%;
+}
+
+.fixed-bottom {
+    height: 10%;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    position: fixed;
+    bottom: 0;
+}
+
+#language-selector {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: .7rem;
+    
+}
+
+.select {
+    margin-left: 1rem;
+    padding: .3em .6em;
+    border-radius: 5px;
+    border-color: #dee2e6;
+    border-style: solid;
+
+}
+
+.select:c{
+    border-radius: 5px;
+    border: solid 1px #dee2e6;
 }

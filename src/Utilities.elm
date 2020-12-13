@@ -1,7 +1,9 @@
 module Utilities exposing (..)
 
 import Html exposing (Attribute, Html, button, div, h1, i, p)
-import Html.Attributes exposing (attribute, class)
+import Html.Attributes exposing (attribute, class, style)
+import Html.Events as Events
+import Json.Decode
 
 
 container : List (Attribute msg) -> List (Html msg) -> Html msg
@@ -50,3 +52,20 @@ btn attributes children =
 icon : String -> List (Attribute msg) -> List (Html msg) -> Html msg
 icon fontAwesomeStr attributes children =
     i (class ("fas fa-" ++ fontAwesomeStr) :: attributes) children
+
+
+select : List (Attribute msg) -> List (Html msg) -> Html msg
+select attributes children =
+    Html.select (class "select" :: attributes) children
+
+
+onChange : (String -> msg) -> Attribute msg
+onChange parseFunc =
+    Events.targetValue
+        |> Json.Decode.map parseFunc
+        |> Events.on "change"
+
+
+onScroll : msg -> Attribute msg
+onScroll msg =
+    Events.on "scroll" (Json.Decode.succeed msg)
